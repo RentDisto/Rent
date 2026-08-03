@@ -1,9 +1,9 @@
 <?php
+$conn = mysqli_connect("localhost", "root", "", "device-rent");
+//                                          ↑↑↑↑↑↑↑↑↑↑↑
+// must be the same database where admins table exists
 
-$conn = mysqli_connect("localhost","root","","device-rent");
-
-if(!$conn){
-    die("Connection Failed");
+if (!$conn) {
+    die("Connection Failed: " . mysqli_connect_error());
 }
-
 ?>
