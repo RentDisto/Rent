@@ -1,5 +1,7 @@
 <?php
+session_start();
 include 'db.php';
+$isAdmin = isset($_SESSION['role']) && $_SESSION['role'] === 'admin';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -15,8 +17,15 @@ include 'db.php';
     <a href="index.php" class="brand">📱 DeviceRent</a>
     <div class="nav-links">
         <a href="index.php">Home</a>
-        <a href="add_customer.php">Add Customer</a>
         <a href="view_customers.php" class="active">Customers</a>
+        <?php if ($isAdmin): ?>
+            <a href="add_customer.php">Add Customer</a>
+            <a href="manage_devices.php">Devices</a>
+            <span class="nav-user">Hi, <strong><?php echo htmlspecialchars($_SESSION['username']); ?></strong></span>
+            <a href="logout.php">Logout</a>
+        <?php else: ?>
+            <a href="login.php">Login</a>
+        <?php endif; ?>
     </div>
 </nav>
 
@@ -24,7 +33,9 @@ include 'db.php';
     <div class="table-card">
         <div class="table-toolbar">
             <h2>Customer List</h2>
-            <a href="add_customer.php" class="btn">+ Add Customer</a>
+            <?php if ($isAdmin): ?>
+                <a href="add_customer.php" class="btn">+ Add Customer</a>
+            <?php endif; ?>
         </div>
 
         <?php
@@ -35,9 +46,11 @@ include 'db.php';
         ?>
             <div class="empty-state">
                 <div class="icon">📭</div>
-                <p>No customers yet. Add your first one!</p>
-                <br>
-                <a href="add_customer.php" class="btn">Add Customer</a>
+                <p>No customers yet.</p>
+                <?php if ($isAdmin): ?>
+                    <br>
+                    <a href="add_customer.php" class="btn">Add Customer</a>
+                <?php endif; ?>
             </div>
         <?php else: ?>
         <div style="overflow-x: auto;">
@@ -52,7 +65,6 @@ include 'db.php';
                         <th>Device</th>
                         <th>Rent Date</th>
                         <th>Return Date</th>
-                        <th>Price</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -66,7 +78,6 @@ include 'db.php';
                         <td><?php echo htmlspecialchars($row['device'] ?? '—'); ?></td>
                         <td><?php echo htmlspecialchars($row['rent_date'] ?? '—'); ?></td>
                         <td><?php echo htmlspecialchars($row['return_date'] ?? '—'); ?></td>
-                        <td class="price">RM <?php echo number_format((float)($row['price'] ?? 0), 2); ?></td>
                     </tr>
                 <?php endwhile; ?>
                 </tbody>
