@@ -2,7 +2,6 @@
 session_start();
 include 'db.php';
 
-// Already logged in
 if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
     header("Location: index.php");
     exit;
@@ -12,21 +11,23 @@ $error = '';
 
 if (isset($_POST['login'])) {
     $username = mysqli_real_escape_string($conn, $_POST['username']);
-    $password = MD5($_POST['password']);
+    $password = $_POST['password']; // plain text from form
 
-    // Use the ADMINS table (not users)
-    $result = mysqli_query($conn, "SELECT * FROM admins WHERE username='$username' AND password='$password' LIMIT 1");
+    $result = mysqli_query($conn, "SELECT * FROM admins WHERE username='$username' LIMIT 1");
 
     if ($result && mysqli_num_rows($result) === 1) {
         $user = mysqli_fetch_assoc($result);
-        $_SESSION['user_id']  = $user['id'];
-        $_SESSION['username'] = $user['username'];
-        $_SESSION['role']     = $user['role'];
-        header("Location: index.php");
-        exit;
-    } else {
-        $error = 'Invalid username or password.';
+
+        // Works with password_hash() from phpMyAdmin
+        if (password_verify($password, $user['password'])) {
+            $_SESSION['user_id']  = $user['id'];
+            $_SESSION['username'] = $user['username'];
+            $_SESSION['role']     = $user['role'];
+            header("Location: index.php");
+            exit;
+        }
     }
+    $error = 'Invalid username or password.';
 }
 ?>
 <!DOCTYPE html>
