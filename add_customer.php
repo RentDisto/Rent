@@ -7,37 +7,69 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
     exit;
 }
 
-$available = mysqli_query($conn,
-    "SELECT * FROM devices WHERE status='Available' OR status='available' ORDER BY category, device_name");
+$available = mysqli_query($conn, "
+    SELECT * FROM devices
+    WHERE LOWER(status) = 'available'
+    ORDER BY FIELD(category, 'Laptop', 'Printer', 'Projector'), device_name
+");
 
 $error = '';
 
 if (isset($_POST['save'])) {
-    $name      = mysqli_real_escape_string($conn, $_POST['fullname']);
-    $ic        = mysqli_real_escape_string($conn, $_POST['ic']);
-    $phone     = mysqli_real_escape_string($conn, $_POST['phone']);
-    $email     = mysqli_real_escape_string($conn, $_POST['email']);
-    $device_id = (int)$_POST['device_id'];
-    $rent      = mysqli_real_escape_string($conn, $_POST['rent']);
-    $return    = mysqli_real_escape_string($conn, $_POST['return']);
+    $name   = mysqli_real_escape_string($conn, $_POST['fullname']);
+    $ic     = mysqli_real_escape_string($conn, $_POST['ic']);
+    $phone  = mysqli_real_escape_string($conn, $_POST['phone']);
+    $email  = mysqli_real_escape_string($conn, $_POST['email']);
+    $rent   = mysqli_real_escape_string($conn, $_POST['rent']);
+    $return = mysqli_real_escape_string($conn, $_POST['return']);
 
-    $dev = mysqli_fetch_assoc(mysqli_query($conn,
-        "SELECT * FROM devices WHERE device_id=$device_id AND (status='Available' OR status='available')"));
+    $device_ids = isset($_POST['device_ids']) ? $_POST['device_ids'] : [];
 
-    if (!$dev) {
-        $error = 'Selected device is not available.';
+    if (empty($device_ids)) {
+        $error = 'Please select at least one device.';
     } else {
-        $device_label = $dev['device_name'] . ' [' . ($dev['serial_number'] ?? '') . ']';
+        $labels = [];
+        $ok = true;
 
-        mysqli_query($conn, "INSERT INTO customers
-            (fullname, ic_number, phone, email, device, rent_date, return_date)
-            VALUES
-            ('$name', '$ic', '$phone', '$email', '$device_label', '$rent', '$return')");
+        foreach ($device_ids as $did) {
+            $did = (int)$did;
+            $dev = mysqli_fetch_assoc(mysqli_query($conn, "
+                SELECT * FROM devices
+                WHERE device_id=$did AND LOWER(status)='available'
+            "));
+            if (!$dev) {
+                $ok = false;
+                $error = 'One or more selected devices are no longer available.';
+                break;
+            }
+            $labels[] = $dev['device_name'] . ' [' . ($dev['serial_number'] ?? '') . ']';
+        }
 
-        mysqli_query($conn, "UPDATE devices SET status='Unavailable' WHERE device_id=$device_id");
+        if ($ok) {
+            $device_label = mysqli_real_escape_string($conn, implode(', ', $labels));
 
-        header("Location: view_customers.php");
-        exit;
+            mysqli_query($conn, "INSERT INTO customers
+                (fullname, ic_number, phone, email, device, rent_date, return_date)
+                VALUES
+                ('$name', '$ic', '$phone', '$email', '$device_label', '$rent', '$return')");
+
+            foreach ($device_ids as $did) {
+                $did = (int)$did;
+                mysqli_query($conn, "UPDATE devices SET status='Unavailable' WHERE device_id=$did");
+            }
+
+            header("Location: view_customers.php");
+            exit;
+        }
+    }
+}
+
+$grouped = ['Laptop' => [], 'Printer' => [], 'Projector' => []];
+if ($available) {
+    while ($d = mysqli_fetch_assoc($available)) {
+        $cat = $d['category'];
+        if (!isset($grouped[$cat])) $grouped[$cat] = [];
+        $grouped[$cat][] = $d;
     }
 }
 ?>
@@ -48,6 +80,49 @@ if (isset($_POST['save'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add Customer – DeviceRent</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        .device-box {
+            max-height: 260px;
+            overflow-y: auto;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 8px;
+            background: #f8fafc;
+            padding: 10px 12px;
+        }
+        .device-group-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #2563eb;
+            margin: 10px 0 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .device-group-title:first-child { margin-top: 0; }
+        .device-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .device-item:hover { background: #eff6ff; }
+        .device-item input {
+            width: 16px;
+            height: 16px;
+            accent-color: #2563eb;
+            cursor: pointer;
+        }
+        .device-item span {
+            font-size: 0.9rem;
+            color: #1e293b;
+        }
+        .device-item .sn {
+            color: #94a3b8;
+            font-size: 0.8rem;
+        }
+    </style>
 </head>
 <body>
 
@@ -58,6 +133,7 @@ if (isset($_POST['save'])) {
         <a href="view_customers.php">Customers</a>
         <a href="add_customer.php" class="active">Add Customer</a>
         <a href="manage_devices.php">Devices</a>
+        <a href="report.php">Reports</a>
         <span class="nav-user">Hi, <strong><?php echo htmlspecialchars($_SESSION['username']); ?></strong></span>
         <a href="logout.php">Logout</a>
     </div>
@@ -65,7 +141,7 @@ if (isset($_POST['save'])) {
 
 <div class="page-header">
     <h1>Add Customer / Rental</h1>
-    <p>Choose an available device, then fill customer details.</p>
+    <p>Select one or more available devices, then fill customer details.</p>
 </div>
 
 <div class="form-card">
@@ -96,25 +172,32 @@ if (isset($_POST['save'])) {
         </div>
 
         <div class="form-group">
-            <label>Select Available Device</label>
-            <select name="device_id" required
-                style="width:100%;padding:11px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.95rem;background:#f8fafc;">
-                <option value="">-- Choose device --</option>
-                <?php if ($available && mysqli_num_rows($available) > 0): ?>
-                    <?php while ($d = mysqli_fetch_assoc($available)): ?>
-                        <option value="<?php echo $d['device_id']; ?>">
-                            <?php
-                            echo htmlspecialchars($d['category'] . ' – ' . $d['device_name']);
-                            if (!empty($d['serial_number'])) {
-                                echo ' (S/N: ' . htmlspecialchars($d['serial_number']) . ')';
-                            }
-                            ?>
-                        </option>
-                    <?php endwhile; ?>
-                <?php else: ?>
-                    <option value="" disabled>No available devices</option>
+            <label>Select Available Device(s) — can choose more than one</label>
+            <div class="device-box">
+                <?php
+                $hasAny = false;
+                foreach ($grouped as $type => $list):
+                    if (count($list) === 0) continue;
+                    $hasAny = true;
+                ?>
+                    <div class="device-group-title"><?php echo htmlspecialchars($type); ?></div>
+                    <?php foreach ($list as $d): ?>
+                        <label class="device-item">
+                            <input type="checkbox" name="device_ids[]" value="<?php echo $d['device_id']; ?>">
+                            <span>
+                                <?php echo htmlspecialchars($d['device_name']); ?>
+                                <?php if (!empty($d['serial_number'])): ?>
+                                    <span class="sn">(S/N: <?php echo htmlspecialchars($d['serial_number']); ?>)</span>
+                                <?php endif; ?>
+                            </span>
+                        </label>
+                    <?php endforeach; ?>
+                <?php endforeach; ?>
+
+                <?php if (!$hasAny): ?>
+                    <p style="color:#94a3b8;padding:12px 0;text-align:center;">No available devices</p>
                 <?php endif; ?>
-            </select>
+            </div>
         </div>
 
         <div class="form-row">
