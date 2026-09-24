@@ -33,10 +33,9 @@ if (isset($_GET['toggle'])) {
     exit;
 }
 
-// DELETE (remove rentals first)
+// DELETE device
 if (isset($_GET['delete'])) {
     $id = (int)$_GET['delete'];
-    mysqli_query($conn, "DELETE FROM rentals WHERE device_id=$id");
     mysqli_query($conn, "DELETE FROM devices WHERE device_id=$id");
     header("Location: manage_devices.php");
     exit;
