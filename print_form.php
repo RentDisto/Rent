@@ -16,6 +16,8 @@ if (isset($_GET['id'])) {
 
 $nama     = $customer['fullname'] ?? '';
 $nokp     = $customer['ic_number'] ?? '';
+$branch   = $customer['branch_unit'] ?? '';
+$job      = $customer['job_title'] ?? '';
 $notel    = $customer['phone'] ?? '';
 $device   = $customer['device'] ?? '';
 $rentDate = $customer['rent_date'] ?? '';
@@ -286,8 +288,8 @@ $deviceList = array_slice($deviceList, 0, 5);
                 <div class="field"><label>No KP :</label><div class="line"><?php echo htmlspecialchars($nokp); ?></div></div>
             </div>
             <div class="row">
-                <div class="field"><label>Cawangan/Unit :</label><div class="line"></div></div>
-                <div class="field"><label>Jawatan :</label><div class="line"></div></div>
+                <div class="field"><label>Cawangan/Unit :</label><div class="line"><?php echo htmlspecialchars($branch); ?></div></div>
+                <div class="field"><label>Jawatan :</label><div class="line"><?php echo htmlspecialchars($job); ?></div></div>
             </div>
             <div class="row">
                 <div class="field"><label>No. Tel :</label><div class="line"><?php echo htmlspecialchars($notel); ?></div></div>
@@ -443,7 +445,7 @@ $deviceList = array_slice($deviceList, 0, 5);
                         <tr><td colspan="2"><span class="gh-label">Nama :</span></td></tr>
                         <tr>
                             <td style="width:60%;"><span class="gh-label">Tandatangan :</span></td>
-                            <td style="width:40%;"><span class="gh-label">Tarikh :</span></td>
+                            <td style="width:40%;"><span class="gh-label">Tarikh :</span> <?php echo htmlspecialchars($rentDate); ?></td>
                         </tr>
                         <tr><td colspan="2" class="gh-head">DITERIMA OLEH</td></tr>
                         <tr>
@@ -454,7 +456,7 @@ $deviceList = array_slice($deviceList, 0, 5);
                         </tr>
                         <tr>
                             <td><span class="gh-label">Tandatangan :</span></td>
-                            <td><span class="gh-label">Tarikh :</span></td>
+                            <td><span class="gh-label">Tarikh :</span> <?php echo htmlspecialchars($rentDate); ?></td>
                         </tr>
                     </table>
                 </td>
