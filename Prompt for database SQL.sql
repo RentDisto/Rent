@@ -27,6 +27,8 @@ CREATE TABLE IF NOT EXISTS customers (
     id INT AUTO_INCREMENT PRIMARY KEY,
     fullname VARCHAR(100) NOT NULL,
     ic_number VARCHAR(20) NOT NULL,
+    branch_unit VARCHAR(150),
+    job_title VARCHAR(100),
     phone VARCHAR(20),
     email VARCHAR(100),
     device TEXT,
@@ -35,6 +37,12 @@ CREATE TABLE IF NOT EXISTS customers (
     returned TINYINT(1) DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Existing installations: run this once if the customers table already exists
+-- and does not yet have these columns:
+-- ALTER TABLE customers
+--     ADD COLUMN branch_unit VARCHAR(150) NULL AFTER ic_number,
+--     ADD COLUMN job_title VARCHAR(100) NULL AFTER branch_unit;
 
 -- ==========================
 -- Devices Table
