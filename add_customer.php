@@ -18,6 +18,8 @@ $error = '';
 if (isset($_POST['save'])) {
     $name   = mysqli_real_escape_string($conn, $_POST['fullname']);
     $ic     = mysqli_real_escape_string($conn, $_POST['ic']);
+    $branch = mysqli_real_escape_string($conn, $_POST['branch_unit'] ?? '');
+    $job    = mysqli_real_escape_string($conn, $_POST['job_title'] ?? '');
     $phone  = mysqli_real_escape_string($conn, $_POST['phone']);
     $email  = mysqli_real_escape_string($conn, $_POST['email']);
     $rent   = mysqli_real_escape_string($conn, $_POST['rent']);
@@ -49,9 +51,9 @@ if (isset($_POST['save'])) {
             $device_label = mysqli_real_escape_string($conn, implode(', ', $labels));
 
             mysqli_query($conn, "INSERT INTO customers
-                (fullname, ic_number, phone, email, device, rent_date, return_date)
+                (fullname, ic_number, branch_unit, job_title, phone, email, device, rent_date, return_date)
                 VALUES
-                ('$name', '$ic', '$phone', '$email', '$device_label', '$rent', '$return')");
+                ('$name', '$ic', '$branch', '$job', '$phone', '$email', '$device_label', '$rent', '$return')");
 
             foreach ($device_ids as $did) {
                 $did = (int)$did;
@@ -163,6 +165,17 @@ if ($available) {
             <div class="form-group">
                 <label>Phone</label>
                 <input type="tel" name="phone" placeholder="e.g. 0123456789">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>Cawangan/Unit</label>
+                <input type="text" name="branch_unit" placeholder="e.g. Bahagian Teknologi Maklumat">
+            </div>
+            <div class="form-group">
+                <label>Jawatan</label>
+                <input type="text" name="job_title" placeholder="e.g. Pegawai Teknologi Maklumat">
             </div>
         </div>
 
